@@ -60,7 +60,138 @@ The project shows how to:
 ### 1. Clone the repository
  
 ```bash
-git clone https://github.com/gustavo-as/sso-keycloak-poc.git
+git clone https://github.com/your-username/sso-keycloak-poc.git
 cd sso-keycloak-poc
 ```
  
+### 2. Start the infrastructure
+ 
+```bash
+docker compose -f infra/docker-compose.yml up -d
+```
+ 
+This starts:
+- **Keycloak** at `http://localhost:8080` (admin / admin)
+- **PostgreSQL** at `localhost:5432`
+Keycloak is pre-configured via `infra/keycloak/realm-export.json` — the realm, clients, and roles are imported automatically on first boot.
+ 
+### 3. Start the backend
+ 
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+ 
+The API will be available at `http://localhost:8081`.
+ 
+### 4. Start the frontend
+ 
+```bash
+cd frontend
+npm install
+ng serve
+```
+ 
+The SPA will be available at `http://localhost:4200`.
+ 
+### 5. Log in
+ 
+Open `http://localhost:4200` in your browser. You will be redirected to Keycloak. Use the test credentials:
+ 
+| Username | Password | Role |
+|----------|----------|------|
+| `user@poc.dev` | `password` | `user` |
+| `admin@poc.dev` | `password` | `admin` |
+ 
+---
+ 
+## Project Structure
+ 
+```
+sso-keycloak-poc/
+│
+├── backend/                      # Spring Boot — Resource Server
+│   ├── src/
+│   │   └── main/java/dev/poc/sso/
+│   │       ├── controller/       # PeopleController
+│   │       ├── config/           # SecurityConfig (OAuth2 + introspection)
+│   │       └── model/            # Person record
+│   └── pom.xml
+│
+├── frontend/                     # Angular SPA — Authorization Code + PKCE
+│   ├── src/
+│   │   └── app/
+│   │       ├── auth/             # Keycloak init + guards
+│   │       └── pages/            # Protected pages
+│   └── package.json
+│
+├── infra/
+│   ├── docker-compose.yml        # Keycloak + PostgreSQL
+│   └── keycloak/
+│       └── realm-export.json     # Pre-configured realm (auto-imported)
+│
+├── docs/
+│   └── architecture.png          # Architecture diagram
+│
+├── .gitignore
+└── README.md
+```
+ 
+---
+ 
+## API Endpoints
+ 
+| Method | Path | Auth required | Description |
+|--------|------|:---:|-------------|
+| `GET` | `/people` | ✅ | Returns a list of people (protected resource) |
+| `GET` | `/actuator/health` | ❌ | Health check |
+ 
+### Example request
+ 
+```bash
+# Get token from Keycloak
+TOKEN=$(curl -s -X POST http://localhost:8080/realms/sso-keycloak-poc/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "client_id=angular-client" \
+  -d "grant_type=password" \
+  -d "username=user@poc.dev" \
+  -d "password=password" \
+  | jq -r '.access_token')
+ 
+# Call the protected endpoint
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/people
+```
+ 
+---
+ 
+## Article
+ 
+This project accompanies a full step-by-step article published as part of my portfolio:
+ 
+> **SSO in Practice: building centralized authentication with Keycloak, Spring Boot, and Angular**
+> *(link coming soon)*
+ 
+The article covers every decision made here — from protocol selection to production considerations.
+ 
+---
+ 
+## Roadmap
+ 
+- [x] Keycloak setup with Docker Compose and realm import
+- [x] Spring Boot Resource Server with token introspection
+- [ ] Angular SPA with Authorization Code + PKCE
+- [ ] Refresh token rotation
+- [ ] Logout (backchannel + SPA session clear)
+- [ ] HTTPS setup with self-signed cert for local dev
+- [ ] Role-based access control (RBAC) example
+---
+ 
+## License
+ 
+This project is licensed under the [MIT License](LICENSE).
+ 
+---
+ 
+<div align="center">
+  Built as a learning project and portfolio piece · Feedback welcome via <a href="https://github.com/your-username/sso-keycloak-poc/issues">Issues</a>
+</div>

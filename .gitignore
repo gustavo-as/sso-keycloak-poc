@@ -1,0 +1,47 @@
+# ========================
+# Java / Maven
+# ========================
+sso-backend/target/
+sso-backend/.mvn/
+*.class
+*.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ========================
+# Node / Angular
+# ========================
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.env
+frontend/.env.local
+
+# ========================
+# Docker
+# ========================
+infra/postgres_data/
+
+# ========================
+# IDEs
+# ========================
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Logs
+# ========================
+*.log
+logs/
