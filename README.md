@@ -60,7 +60,7 @@ The project shows how to:
 ### 1. Clone the repository
  
 ```bash
-git clone https://github.com/your-username/sso-keycloak-poc.git
+git clone https://github.com/gustavo-as/sso-keycloak-poc.git
 cd sso-keycloak-poc
 ```
  
