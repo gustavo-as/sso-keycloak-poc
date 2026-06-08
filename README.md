@@ -179,7 +179,7 @@ The article covers every decision made here — from protocol selection to produ
  
 - [x] Keycloak setup with Docker Compose and realm import
 - [x] Spring Boot Resource Server with token introspection
-- [ ] Angular SPA with Authorization Code + PKCE
+- [x] Angular SPA with Authorization Code + PKCE
 - [ ] Refresh token rotation
 - [ ] Logout (backchannel + SPA session clear)
 - [ ] HTTPS setup with self-signed cert for local dev
