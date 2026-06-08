@@ -1,5 +1,11 @@
 <div class="container">
-  <h1>People</h1>
+  <div class="header">
+    <h1>People</h1>
+    <div class="user-info">
+      <span>👤 {{ username }}</span>
+      <button class="logout-btn" (click)="logout()">Logout</button>
+    </div>
+  </div>
 
   <p *ngIf="loading">Loading...</p>
   <p *ngIf="error" class="error">{{ error }}</p>

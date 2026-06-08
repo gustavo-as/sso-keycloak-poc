@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { KeycloakService } from 'keycloak-angular';
 
 interface Person {
   id: number;
@@ -19,8 +20,12 @@ export class PeopleComponent implements OnInit{
   people: Person[] = [];
   loading = true;
   error = '';
+  username = '';
 
-  constructor(private http: HttpClient) {}
+
+  constructor(private http: HttpClient,
+    private keycloak: KeycloakService
+  ) {}
 
   ngOnInit(): void {
     this.http.get<Person[]>('http://localhost:8081/people').subscribe({
@@ -34,6 +39,10 @@ export class PeopleComponent implements OnInit{
         console.error(err);
       },
     });
+  }
+
+  logout(): void {
+    this.keycloak.logout('http://localhost:4200');
   }
 
 }
