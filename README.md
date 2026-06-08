@@ -100,8 +100,8 @@ Open `http://localhost:4200` in your browser. You will be redirected to Keycloak
  
 | Username | Password | Role |
 |----------|----------|------|
-| `user@poc.dev` | `password` | `user` |
-| `admin@poc.dev` | `password` | `admin` |
+| `user@poc.dev` | `password` | `ROLE_USER` |
+| `admin@poc.dev` | `password` | `ROLE_ADMIN` |
  
 ---
  
@@ -114,15 +114,19 @@ sso-keycloak-poc/
 │   ├── src/
 │   │   └── main/java/dev/poc/sso/
 │   │       ├── controller/       # PeopleController
-│   │       ├── config/           # SecurityConfig (OAuth2 + introspection)
+│   │       ├── config/           # SecurityConfig (OAuth2 + CORS + introspection)
 │   │       └── model/            # Person record
 │   └── pom.xml
 │
 ├── frontend/                     # Angular SPA — Authorization Code + PKCE
 │   ├── src/
-│   │   └── app/
-│   │       ├── auth/             # Keycloak init + guards
-│   │       └── pages/            # Protected pages
+│   │   ├── app/
+│   │   │   ├── guards/           # authGuard (redirects to Keycloak if not logged in)
+│   │   │   ├── interceptors/     # authInterceptor (attaches Bearer token)
+│   │   │   ├── pages/people/     # PeopleComponent (protected page)
+│   │   │   ├── app.config.ts     # Keycloak init + providers
+│   │   │   └── app.routes.ts     # Routes with authGuard
+│   │   └── keycloak.config.ts    # Keycloak connection settings
 │   └── package.json
 │
 ├── infra/
@@ -180,10 +184,11 @@ The article covers every decision made here — from protocol selection to produ
 - [x] Keycloak setup with Docker Compose and realm import
 - [x] Spring Boot Resource Server with token introspection
 - [x] Angular SPA with Authorization Code + PKCE
-- [ ] Refresh token rotation
-- [ ] Logout (backchannel + SPA session clear)
-- [ ] HTTPS setup with self-signed cert for local dev
-- [ ] Role-based access control (RBAC) example
+- [x] Refresh token rotation
+- [x] Logout with Keycloak session invalidation
+- [x] Role-based access control (RBAC) — frontend and backend
+- [ ] HTTPS — out of scope for this POC (recommended for production with a valid certificate)
+
 ---
  
 ## License
