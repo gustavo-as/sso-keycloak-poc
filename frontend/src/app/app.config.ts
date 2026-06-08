@@ -13,7 +13,13 @@ function initializeKeycloak(keycloak: KeycloakService) {
       initOptions: {
         onLoad: 'login-required',
         checkLoginIframe: false,
+        silentCheckSsoRedirectUri:
+          window.location.origin + '/silent-check-sso.html',
       },
+      shouldUpdateToken(request) {
+        return !request.headers.get('token-update') === false;
+      },
+      bearerExcludedUrls: ['/assets', '/actuator/health'],
     });
 }
 

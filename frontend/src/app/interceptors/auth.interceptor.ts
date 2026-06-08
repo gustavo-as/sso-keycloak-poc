@@ -6,8 +6,9 @@ import { from, switchMap } from 'rxjs';
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const keycloak = inject(KeycloakService);
 
-  return from(keycloak.getToken()).pipe(
-    switchMap((token) => {
+  return from(keycloak.updateToken(20)).pipe(
+    switchMap(() => {
+      const token = keycloak.getKeycloakInstance().token;
       if (token) {
         const authReq = req.clone({
           setHeaders: {
