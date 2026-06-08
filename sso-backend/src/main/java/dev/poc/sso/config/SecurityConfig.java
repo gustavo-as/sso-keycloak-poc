@@ -1,21 +1,41 @@
 package dev.poc.sso.config;
 
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.DefaultOAuth2AuthenticatedPrincipal;
+import org.springframework.security.oauth2.server.resource.introspection.OpaqueTokenIntrospector;
+import org.springframework.security.oauth2.server.resource.introspection.SpringOpaqueTokenIntrospector;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
-   @Bean
+    @Value("${spring.security.oauth2.resourceserver.opaquetoken.introspection-uri}")
+    private String introspectionUri;
+
+    @Value("${spring.security.oauth2.resourceserver.opaquetoken.client-id}")
+    private String clientId;
+
+    @Value("${spring.security.oauth2.resourceserver.opaquetoken.client-secret}")
+    private String clientSecret;
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -28,12 +48,38 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 ->
-                oauth2.opaqueToken(token -> {})
+                oauth2.opaqueToken(token -> token.introspector(introspector()))
             );
 
         return http.build();
     }
 
+    @Bean
+    public OpaqueTokenIntrospector introspector() {
+        return token -> {
+            SpringOpaqueTokenIntrospector delegate =
+                new SpringOpaqueTokenIntrospector(introspectionUri, clientId, clientSecret);
+
+            var principal = delegate.introspect(token);
+
+            List<GrantedAuthority> authorities = new ArrayList<>(principal.getAuthorities());
+
+            Map<String, Object> realmAccess = principal.getAttribute("realm_access");
+            if (realmAccess != null && realmAccess.containsKey("roles")) {
+                @SuppressWarnings("unchecked")
+                List<String> realmRoles = (List<String>) realmAccess.get("roles");
+                realmRoles.stream()
+                    .map(role -> (GrantedAuthority) new SimpleGrantedAuthority(role))
+                    .forEach(authorities::add);
+            }
+
+            return new org.springframework.security.oauth2.server.resource.introspection.OAuth2IntrospectionAuthenticatedPrincipal(
+                principal.getAttributes(),
+                authorities
+            );
+        };
+    }
+    
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

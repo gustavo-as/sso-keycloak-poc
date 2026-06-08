@@ -3,6 +3,7 @@
     <h1>People</h1>
     <div class="user-info">
       <span>👤 {{ username }}</span>
+      <span *ngIf="isAdmin" class="badge">Admin</span>
       <button class="logout-btn" (click)="logout()">Logout</button>
     </div>
   </div>
@@ -16,6 +17,7 @@
         <th>ID</th>
         <th>Name</th>
         <th>Email</th>
+        <th *ngIf="isAdmin">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -23,6 +25,11 @@
         <td>{{ person.id }}</td>
         <td>{{ person.name }}</td>
         <td>{{ person.email }}</td>
+        <td *ngIf="isAdmin">
+          <button class="delete-btn" (click)="deletePerson(person.id)">
+            Delete
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>

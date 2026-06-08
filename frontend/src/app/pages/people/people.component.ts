@@ -21,22 +21,41 @@ export class PeopleComponent implements OnInit{
   loading = true;
   error = '';
   username = '';
+  isAdmin = false;
 
 
-  constructor(private http: HttpClient,
+  constructor(
+    private http: HttpClient,
     private keycloak: KeycloakService
   ) {}
 
-  ngOnInit(): void {
-    this.http.get<Person[]>('http://localhost:8081/people').subscribe({
-      next: (data) => {
-        this.people = data;
-        this.loading = false;
+  async ngOnInit(): Promise<void> {
+  const instance = this.keycloak.getKeycloakInstance();
+
+  this.username = instance.tokenParsed?.['preferred_username'] ?? '';
+
+  const roles = instance.realmAccess?.roles ?? [];
+  this.isAdmin = roles.includes('ROLE_ADMIN');
+
+  this.http.get<Person[]>('http://localhost:8081/people').subscribe({
+    next: (data) => {
+      this.people = data;
+      this.loading = false;
+    },
+    error: (err) => {
+      this.error = 'Failed to load people. Please try again.';
+      this.loading = false;
+      console.error(err);
+    },
+  });
+  }
+  deletePerson(id: number): void {
+    this.http.delete(`http://localhost:8081/people/${id}`).subscribe({
+      next: () => {
+        this.people = this.people.filter(p => p.id !== id);
       },
       error: (err) => {
-        this.error = 'Failed to load people. Please try again.';
-        this.loading = false;
-        console.error(err);
+        console.error('Delete failed', err);
       },
     });
   }
