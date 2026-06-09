@@ -5,16 +5,8 @@ import { tenantGuard } from './guards/tenant.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'select-tenant',
+    redirectTo: 'people',
     pathMatch: 'full',
-  },
-  {
-    path: 'select-tenant',
-    loadComponent: () =>
-      import('./pages/select-tenant/select-tenant.component').then(
-        (m) => m.SelectTenantComponent
-      ),
-    canActivate: [authGuard],
   },
   {
     path: 'people',
@@ -22,6 +14,6 @@ export const routes: Routes = [
       import('./pages/people/people.component').then(
         (m) => m.PeopleComponent
       ),
-      canActivate: [authGuard, tenantGuard],
+    canActivate: [authGuard, tenantGuard],
   },
 ];

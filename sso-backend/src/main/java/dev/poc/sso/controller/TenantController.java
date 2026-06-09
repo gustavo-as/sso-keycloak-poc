@@ -21,7 +21,6 @@ public class TenantController {
 
     @GetMapping("/me/companies")
 public ResponseEntity<List<Company>> getMyCompanies(Authentication authentication) {
-    System.out.println("USERNAME: " + authentication.getName());
     String username = authentication.getName();
     return ResponseEntity.ok(tenantRepository.findCompaniesByUsername(username));
 }

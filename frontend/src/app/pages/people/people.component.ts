@@ -23,6 +23,8 @@ export class PeopleComponent implements OnInit {
   error = '';
   username = '';
   isAdmin = false;
+  tenantName = '';
+  roleLabel = '';
 
   constructor(
     private http: HttpClient,
@@ -32,11 +34,12 @@ export class PeopleComponent implements OnInit {
 
   ngOnInit(): void {
     const claims = this.oauthService.getIdentityClaims() as any;
-    this.username = claims?.['preferred_username'] ?? '';
+    this.username = claims?.['name'] ?? claims?.['preferred_username'] ?? '';
 
-    // Read roles from tenant context, not from JWT
     const tenant = this.tenantService.getActiveTenant();
     this.isAdmin = tenant?.roles.includes('ROLE_ADMIN') ?? false;
+    this.tenantName = tenant?.companyId ?? '';
+    this.roleLabel = this.isAdmin ? 'Admin' : 'User';
 
     this.http.get<Person[]>('http://localhost:8081/people').subscribe({
       next: (data) => {

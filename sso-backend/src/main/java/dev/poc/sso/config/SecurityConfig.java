@@ -57,8 +57,8 @@ public class SecurityConfig {
             .oauth2ResourceServer(oauth2 ->
                 oauth2.opaqueToken(token -> token.introspector(introspector()))
             )
-            .addFilterAfter(tenantContextFilter, UsernamePasswordAuthenticationFilter.class);
-
+            .addFilterAfter(tenantContextFilter, 
+                org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 

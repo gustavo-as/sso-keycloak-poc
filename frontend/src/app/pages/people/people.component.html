@@ -1,36 +1,45 @@
-<div class="container">
-  <div class="header">
-    <h1>People</h1>
-    <div class="user-info">
-      <span>👤 {{ username }}</span>
-      <span *ngIf="isAdmin" class="badge">Admin</span>
+<div class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <span class="app-name">SSO POC</span>
+      <span class="tenant-badge">🏢 {{ tenantName }}</span>
+    </div>
+    <div class="header-right">
+      <span class="username">{{ username }}</span>
+      <span class="role-badge" [class.admin]="isAdmin">{{ roleLabel }}</span>
       <button class="logout-btn" (click)="logout()">Logout</button>
     </div>
-  </div>
+  </header>
 
-  <p *ngIf="loading">Loading...</p>
-  <p *ngIf="error" class="error">{{ error }}</p>
+  <!-- Content -->
+  <main class="content">
+    <div class="content-header">
+      <h1>People</h1>
+      <span class="count" *ngIf="!loading && !error">{{ people.length }} members</span>
+    </div>
 
-  <table *ngIf="!loading && !error">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Email</th>
-        <th *ngIf="isAdmin">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let person of people">
-        <td>{{ person.id }}</td>
-        <td>{{ person.name }}</td>
-        <td>{{ person.email }}</td>
-        <td *ngIf="isAdmin">
-          <button class="delete-btn" (click)="deletePerson(person.id)">
-            Delete
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+    <p *ngIf="loading" class="loading">Loading...</p>
+    <p *ngIf="error" class="error">{{ error }}</p>
+
+    <div class="cards" *ngIf="!loading && !error">
+      <div class="card" *ngFor="let person of people">
+        <div class="card-avatar">
+          {{ person.name.charAt(0) }}
+        </div>
+        <div class="card-info">
+          <span class="card-name">{{ person.name }}</span>
+          <span class="card-email">{{ person.email }}</span>
+        </div>
+        <button
+          *ngIf="isAdmin"
+          class="delete-btn"
+          (click)="deletePerson(person.id)">
+          Delete
+        </button>
+      </div>
+    </div>
+  </main>
+
 </div>
