@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { OAuthService } from 'angular-oauth2-oidc';
+import { TenantService } from '../../services/tenant.service';
 
 interface Person {
   id: number;
@@ -25,17 +26,17 @@ export class PeopleComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
-    private oauthService: OAuthService
+    private oauthService: OAuthService,
+    private tenantService: TenantService
   ) {}
 
   ngOnInit(): void {
     const claims = this.oauthService.getIdentityClaims() as any;
     this.username = claims?.['preferred_username'] ?? '';
 
-    const token = this.oauthService.getAccessToken();
-    const payload = token ? JSON.parse(atob(token.split('.')[1])) : {};
-    const roles = payload?.realm_access?.roles ?? [];
-    this.isAdmin = roles.includes('ROLE_ADMIN');
+    // Read roles from tenant context, not from JWT
+    const tenant = this.tenantService.getActiveTenant();
+    this.isAdmin = tenant?.roles.includes('ROLE_ADMIN') ?? false;
 
     this.http.get<Person[]>('http://localhost:8081/people').subscribe({
       next: (data) => {
@@ -62,6 +63,7 @@ export class PeopleComponent implements OnInit {
   }
 
   logout(): void {
+    this.tenantService.clearTenant();
     this.oauthService.logOut();
   }
 }

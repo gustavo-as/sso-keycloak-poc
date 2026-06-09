@@ -4,6 +4,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideOAuthClient, OAuthService } from 'angular-oauth2-oidc';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { routes } from './app.routes';
+import { tenantInterceptor } from './interceptors/tenant.interceptor';
 
 function initializeOAuth(oauthService: OAuthService) {
   return async () => {
@@ -29,7 +30,10 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([
+      authInterceptor,
+      tenantInterceptor
+    ])),
     provideOAuthClient(),
     {
       provide: APP_INITIALIZER,

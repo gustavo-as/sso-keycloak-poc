@@ -16,7 +16,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.oauth2.server.resource.introspection.OAuth2IntrospectionAuthenticatedPrincipal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,12 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.opaquetoken.client-secret}")
     private String clientSecret;
 
+    private final TenantContextFilter tenantContextFilter;
+
+    public SecurityConfig(TenantContextFilter tenantContextFilter) {
+        this.tenantContextFilter = tenantContextFilter;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -49,7 +56,8 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 ->
                 oauth2.opaqueToken(token -> token.introspector(introspector()))
-            );
+            )
+            .addFilterAfter(tenantContextFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -62,20 +70,28 @@ public class SecurityConfig {
 
             var principal = delegate.introspect(token);
 
-            List<GrantedAuthority> authorities = new ArrayList<>(principal.getAuthorities());
+            List<GrantedAuthority> roles = new ArrayList<>();
 
-            Map<String, Object> realmAccess = principal.getAttribute("realm_access");
-            if (realmAccess != null && realmAccess.containsKey("roles")) {
-                @SuppressWarnings("unchecked")
-                List<String> realmRoles = (List<String>) realmAccess.get("roles");
-                realmRoles.stream()
-                    .map(role -> (GrantedAuthority) new SimpleGrantedAuthority(role))
-                    .forEach(authorities::add);
+            Map<String, Object> attributes = principal.getAttributes();
+            Object realmAccess = attributes.get("realm_access");
+
+            if (realmAccess instanceof Map<?, ?> realmAccessMap) {
+                Object rolesObj = realmAccessMap.get("roles");
+                if (rolesObj instanceof List<?> realmRoles) {
+                    realmRoles.stream()
+                        .filter(r -> r instanceof String)
+                        .map(r -> (GrantedAuthority) new SimpleGrantedAuthority((String) r))
+                        .forEach(roles::add);
+                }
             }
 
-            return new org.springframework.security.oauth2.server.resource.introspection.OAuth2IntrospectionAuthenticatedPrincipal(
-                principal.getAttributes(),
-                authorities
+            String username = (String) attributes.getOrDefault("preferred_username",
+                attributes.getOrDefault("username", principal.getName()));
+
+            return new OAuth2IntrospectionAuthenticatedPrincipal(
+                username,
+                attributes,
+                roles
             );
         };
     }
