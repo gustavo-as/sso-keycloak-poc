@@ -1,7 +1,7 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { KeycloakService } from 'keycloak-angular';
+import { OAuthService } from 'angular-oauth2-oidc';
 
 interface Person {
   id: number;
@@ -14,41 +14,42 @@ interface Person {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './people.component.html',
-  styleUrl: './people.component.css'
+  styleUrl: './people.component.css',
 })
-export class PeopleComponent implements OnInit{
+export class PeopleComponent implements OnInit {
   people: Person[] = [];
   loading = true;
   error = '';
   username = '';
   isAdmin = false;
 
-
   constructor(
     private http: HttpClient,
-    private keycloak: KeycloakService
+    private oauthService: OAuthService
   ) {}
 
-  async ngOnInit(): Promise<void> {
-  const instance = this.keycloak.getKeycloakInstance();
+  ngOnInit(): void {
+    const claims = this.oauthService.getIdentityClaims() as any;
+    this.username = claims?.['preferred_username'] ?? '';
 
-  this.username = instance.tokenParsed?.['preferred_username'] ?? '';
+    const token = this.oauthService.getAccessToken();
+    const payload = token ? JSON.parse(atob(token.split('.')[1])) : {};
+    const roles = payload?.realm_access?.roles ?? [];
+    this.isAdmin = roles.includes('ROLE_ADMIN');
 
-  const roles = instance.realmAccess?.roles ?? [];
-  this.isAdmin = roles.includes('ROLE_ADMIN');
-
-  this.http.get<Person[]>('http://localhost:8081/people').subscribe({
-    next: (data) => {
-      this.people = data;
-      this.loading = false;
-    },
-    error: (err) => {
-      this.error = 'Failed to load people. Please try again.';
-      this.loading = false;
-      console.error(err);
-    },
-  });
+    this.http.get<Person[]>('http://localhost:8081/people').subscribe({
+      next: (data) => {
+        this.people = data;
+        this.loading = false;
+      },
+      error: (err) => {
+        this.error = 'Failed to load people. Please try again.';
+        this.loading = false;
+        console.error(err);
+      },
+    });
   }
+
   deletePerson(id: number): void {
     this.http.delete(`http://localhost:8081/people/${id}`).subscribe({
       next: () => {
@@ -61,7 +62,6 @@ export class PeopleComponent implements OnInit{
   }
 
   logout(): void {
-    this.keycloak.logout('http://localhost:4200');
+    this.oauthService.logOut();
   }
-
 }

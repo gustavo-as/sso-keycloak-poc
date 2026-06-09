@@ -1,23 +1,19 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { KeycloakService } from 'keycloak-angular';
-import { from, switchMap } from 'rxjs';
+import { OAuthService } from 'angular-oauth2-oidc';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const keycloak = inject(KeycloakService);
+  const oauthService = inject(OAuthService);
+  const token = oauthService.getAccessToken();
 
-  return from(keycloak.updateToken(20)).pipe(
-    switchMap(() => {
-      const token = keycloak.getKeycloakInstance().token;
-      if (token) {
-        const authReq = req.clone({
-          setHeaders: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        return next(authReq);
-      }
-      return next(req);
-    })
-  );
+  if (token) {
+    const authReq = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return next(authReq);
+  }
+
+  return next(req);
 };

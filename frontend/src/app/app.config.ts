@@ -1,26 +1,28 @@
 import { ApplicationConfig, APP_INITIALIZER, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { KeycloakService } from 'keycloak-angular';
-import { keycloakConfig } from '../keycloak.config';
+import { provideOAuthClient, OAuthService } from 'angular-oauth2-oidc';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { routes } from './app.routes';
 
-function initializeKeycloak(keycloak: KeycloakService) {
-  return () =>
-    keycloak.init({
-      config: keycloakConfig,
-      initOptions: {
-        onLoad: 'login-required',
-        checkLoginIframe: false,
-        silentCheckSsoRedirectUri:
-          window.location.origin + '/silent-check-sso.html',
-      },
-      shouldUpdateToken(request) {
-        return !request.headers.get('token-update') === false;
-      },
-      bearerExcludedUrls: ['/assets', '/actuator/health'],
+function initializeOAuth(oauthService: OAuthService) {
+  return async () => {
+    oauthService.configure({
+      issuer: 'http://localhost:8080/realms/sso-keycloak-poc',
+      clientId: 'angular-client',
+      redirectUri: window.location.origin,
+      responseType: 'code',
+      scope: 'openid profile email',
+      showDebugInformation: true,
+      requireHttps: false,
     });
+
+    await oauthService.loadDiscoveryDocumentAndTryLogin();
+
+    if (!oauthService.hasValidAccessToken()) {
+      oauthService.initCodeFlow();
+    }
+  };
 }
 
 export const appConfig: ApplicationConfig = {
@@ -28,12 +30,12 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    KeycloakService,
+    provideOAuthClient(),
     {
       provide: APP_INITIALIZER,
-      useFactory: initializeKeycloak,
+      useFactory: initializeOAuth,
       multi: true,
-      deps: [KeycloakService],
+      deps: [OAuthService],
     },
   ],
 };
