@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { TenantService } from '../../services/tenant.service';
+import { TenantSwitcherComponent } from '../../components/tenant-switcher/tenant-switcher.component';
 
 interface Person {
   id: number;
@@ -13,7 +14,7 @@ interface Person {
 @Component({
   selector: 'app-people',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TenantSwitcherComponent],
   templateUrl: './people.component.html',
   styleUrl: './people.component.css',
 })
@@ -23,7 +24,6 @@ export class PeopleComponent implements OnInit {
   error = '';
   username = '';
   isAdmin = false;
-  tenantName = '';
   roleLabel = '';
 
   constructor(
@@ -38,9 +38,21 @@ export class PeopleComponent implements OnInit {
 
     const tenant = this.tenantService.getActiveTenant();
     this.isAdmin = tenant?.roles.includes('ROLE_ADMIN') ?? false;
-    this.tenantName = tenant?.companyId ?? '';
     this.roleLabel = this.isAdmin ? 'Admin' : 'User';
 
+    this.tenantService.tenantChanged$.subscribe(tenant => {
+      if (tenant) {
+        this.isAdmin = tenant.roles.includes('ROLE_ADMIN');
+        this.roleLabel = this.isAdmin ? 'Admin' : 'User';
+        this.loadPeople();
+      }
+    });
+
+    this.loadPeople();
+  }
+
+  loadPeople(): void {
+    this.loading = true;
     this.http.get<Person[]>('http://localhost:8081/people').subscribe({
       next: (data) => {
         this.people = data;

@@ -23,6 +23,9 @@ export class TenantService {
   private showModalSubject = new BehaviorSubject<boolean>(false);
   showModal$ = this.showModalSubject.asObservable();
 
+  private tenantChangedSubject = new BehaviorSubject<TenantContext | null>(null);
+  tenantChanged$ = this.tenantChangedSubject.asObservable();
+
   constructor(private http: HttpClient) {}
 
   getMyCompanies(): Observable<Company[]> {
@@ -37,6 +40,7 @@ export class TenantService {
     this.activeTenant = tenant;
     sessionStorage.setItem(this.TENANT_KEY, JSON.stringify(tenant));
     this.showModalSubject.next(false);
+    this.tenantChangedSubject.next(tenant);
   }
 
   getActiveTenant(): TenantContext | null {
@@ -58,6 +62,7 @@ export class TenantService {
   clearTenant(): void {
     this.activeTenant = null;
     sessionStorage.removeItem(this.TENANT_KEY);
+    this.tenantChangedSubject.next(null);
   }
 
   openModal(): void {

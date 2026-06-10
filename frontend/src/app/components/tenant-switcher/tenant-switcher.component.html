@@ -1,0 +1,18 @@
+<div class="switcher" (clickOutside)="closeDropdown()">
+  <button class="trigger" (click)="toggle()">
+    <span class="icon">🏢</span>
+    <span class="name">{{ activeCompanyName }}</span>
+    <span class="arrow" [class.open]="isOpen">▾</span>
+  </button>
+
+  <div class="dropdown" *ngIf="isOpen">
+    <div
+      *ngFor="let company of companies"
+      class="option"
+      [class.active]="company.id === activeTenantId"
+      (click)="select(company)">
+      <span class="check">{{ company.id === activeTenantId ? '✓' : '' }}</span>
+      <span class="option-name">{{ company.name }}</span>
+    </div>
+  </div>
+</div>

@@ -1,10 +1,9 @@
 <div class="page">
 
-  <!-- Header -->
   <header class="header">
     <div class="header-left">
       <span class="app-name">SSO POC</span>
-      <span class="tenant-badge">🏢 {{ tenantName }}</span>
+      <app-tenant-switcher />
     </div>
     <div class="header-right">
       <span class="username">{{ username }}</span>
@@ -13,29 +12,23 @@
     </div>
   </header>
 
-  <!-- Content -->
   <main class="content">
     <div class="content-header">
       <h1>People</h1>
       <span class="count" *ngIf="!loading && !error">{{ people.length }} members</span>
     </div>
 
-    <p *ngIf="loading" class="loading">Loading...</p>
+    <p *ngIf="loading">Loading...</p>
     <p *ngIf="error" class="error">{{ error }}</p>
 
     <div class="cards" *ngIf="!loading && !error">
       <div class="card" *ngFor="let person of people">
-        <div class="card-avatar">
-          {{ person.name.charAt(0) }}
-        </div>
+        <div class="card-avatar">{{ person.name.charAt(0) }}</div>
         <div class="card-info">
           <span class="card-name">{{ person.name }}</span>
           <span class="card-email">{{ person.email }}</span>
         </div>
-        <button
-          *ngIf="isAdmin"
-          class="delete-btn"
-          (click)="deletePerson(person.id)">
+        <button *ngIf="isAdmin" class="delete-btn" (click)="deletePerson(person.id)">
           Delete
         </button>
       </div>
