@@ -81,7 +81,7 @@ This distinction matters: Keycloak knows *who you are*, but our application deci
 
 ## Architecture Overview
 
-![SSO Architecture](doc/sso-arch.png)
+![SSO Architecture](sso-arch.png)
 
 ### Components
 
@@ -135,7 +135,7 @@ sso-keycloak-poc/
 │   ├── docker-compose.yml
 │   └── keycloak/
 │       └── realm-export.json
-├── backend/
+├── sso-backend/
 ├── frontend/
 └── docs/
 ```
@@ -191,7 +191,7 @@ The Spring Boot API is a Resource Server — it protects endpoints and validates
 - `spring-boot-starter-oauth2-resource-server` for opaque token introspection
 - `spring-boot-starter-security` with `@EnableMethodSecurity`
 
-The full source is available at [`backend/`](../backend).
+The full source is available at [`backend/`](../sso-backend).
 
 ### Security configuration
 
@@ -213,7 +213,7 @@ It reads the `X-Tenant-ID` header, looks up the user's roles for that tenant fro
 
 Filter order matters here. Registering `TenantContextFilter` before `BearerTokenAuthenticationFilter` would mean the `SecurityContext` is empty when it executes — `authentication.getName()` would return `null`.
 
-See [`TenantContextFilter.java`](../backend/src/main/java/dev/poc/sso/config/TenantContextFilter.java) for the full implementation.
+See [`TenantContextFilter.java`](../sso-backend/src/main/java/dev/poc/sso/config/TenantContextFilter.java) for the full implementation.
 
 ### Endpoints
 
@@ -294,7 +294,7 @@ With all three services running, the complete flow looks like this:
 cd infra && docker compose up -d
 
 # Terminal 2
-cd backend && ./mvnw spring-boot:run
+cd sso-backend && ./mvnw spring-boot:run
 
 # Terminal 3
 cd frontend && ng serve
