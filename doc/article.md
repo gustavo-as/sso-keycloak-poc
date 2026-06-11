@@ -81,7 +81,7 @@ This distinction matters: Keycloak knows *who you are*, but our application deci
 
 ## Architecture Overview
 
-![SSO Architecture](architecture.png)
+![SSO Architecture](doc/architecture.png)
 
 ### Components
 
