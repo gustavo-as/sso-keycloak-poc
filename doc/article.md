@@ -66,7 +66,7 @@ Three types of tokens appear in this project:
 
 Instead of validating the token locally, our Spring Boot API sends the token to Keycloak's introspection endpoint and asks: *"Is this token valid? Who does it belong to?"* Keycloak responds with the token's claims and an `active: true` or `active: false` field.
 
-This approach has a deliberate tradeoff — covered in the Production Considerations section.
+This approach has a deliberate tradeoff — covered in the Production Considerations section. *(see [ADR-002](adr.md#adr-002--opaque-token-introspection-over-jwt-local-validation))*
 
 ### RBAC — Role-Based Access Control
 
@@ -81,13 +81,13 @@ This distinction matters: Keycloak knows *who you are*, but our application deci
 
 ## Architecture Overview
 
-![SSO Architecture](sso-arch.png)
+![SSO Architecture](architecture.png)
 
 ### Components
 
-**Keycloak** acts as the centralized Identity Provider. It owns the login screen, issues tokens, and answers introspection requests. No application in this architecture stores or validates passwords — that responsibility belongs entirely to Keycloak.
+**Keycloak** acts as the centralized Identity Provider. It owns the login screen, issues tokens, and answers introspection requests. No application in this architecture stores or validates passwords — that responsibility belongs entirely to Keycloak. *(see [ADR-001](adr.md#adr-001--keycloak-as-identity-provider))*
 
-**Angular SPA** implements the Authorization Code + PKCE flow, stores the access token in memory, and attaches it as a Bearer token on every request to the API. It also manages tenant context — after login, the user selects which organization they want to work with, and that context travels with every subsequent request via the `X-Tenant-ID` header.
+**Angular SPA** implements the Authorization Code + PKCE flow, stores the access token in memory, and attaches it as a Bearer token on every request to the API. It also manages tenant context — after login, the user selects which organization they want to work with, and that context travels with every subsequent request via the `X-Tenant-ID` header. *(see [ADR-009](adr.md#adr-009--x-tenant-id-header-for-tenant-context-propagation))*
 
 **Spring Boot API** is the Resource Server. On every incoming request, it sends the Bearer token to Keycloak's introspection endpoint to verify its validity. If a `X-Tenant-ID` header is present, the `TenantContextFilter` resolves the user's roles for that specific tenant and updates the Spring Security context accordingly.
 
@@ -104,7 +104,7 @@ This distinction matters: Keycloak knows *who you are*, but our application deci
 | ⑤ | Angular calls `GET /me/companies` — Spring Boot validates token via introspection |
 | ⑥ | User selects an organization in the welcome modal |
 | ⑦ | Angular calls `POST /auth/switch-tenant` — Spring Boot returns tenant roles |
-| ⑧ | Angular stores the active tenant in sessionStorage |
+| ⑧ | Angular stores the active tenant in sessionStorage *(see [ADR-010](adr.md#adr-010--sessionstorage-for-tenant-context-persistence))* |
 | ⑨ | Angular sends `Authorization: Bearer <token>` + `X-Tenant-ID: acme` to the API |
 | ⑩ | TenantContextFilter resolves roles — response based on user's role in that tenant |
 
@@ -135,7 +135,7 @@ sso-keycloak-poc/
 │   ├── docker-compose.yml
 │   └── keycloak/
 │       └── realm-export.json
-├── sso-backend/
+├── backend/
 ├── frontend/
 └── docs/
 ```
@@ -201,9 +201,9 @@ Spring Security is configured to use opaque token introspection pointing to Keyc
 
 This is one of the less obvious parts of integrating Spring Security with Keycloak. By default, Spring's opaque token introspector maps the token's `scope` values as authorities — not the Keycloak realm roles.
 
-The roles are nested inside `realm_access.roles` in the introspection response, but Spring does not map them automatically. A custom `OpaqueTokenIntrospector` extracts them and registers them as proper `GrantedAuthority` objects.
+The roles are nested inside `realm_access.roles` in the introspection response, but Spring does not map them automatically. A custom `OpaqueTokenIntrospector` extracts them and registers them as proper `GrantedAuthority` objects. *(see [ADR-006](adr.md#adr-006--custom-role-mapping-from-keycloak-introspection-response))*
 
-See [`SecurityConfig.java`](../backend/src/main/java/dev/poc/sso/config/SecurityConfig.java) for the full implementation.
+See [`SecurityConfig.java`](../sso-backend/src/main/java/dev/poc/sso/config/SecurityConfig.java) for the full implementation.
 
 ### Tenant context filter
 
@@ -211,7 +211,7 @@ The `TenantContextFilter` runs after `BearerTokenAuthenticationFilter` — meani
 
 It reads the `X-Tenant-ID` header, looks up the user's roles for that tenant from the repository, and replaces the Spring Security context with a new authentication object carrying the tenant-specific roles.
 
-Filter order matters here. Registering `TenantContextFilter` before `BearerTokenAuthenticationFilter` would mean the `SecurityContext` is empty when it executes — `authentication.getName()` would return `null`.
+Filter order matters here. Registering `TenantContextFilter` before `BearerTokenAuthenticationFilter` would mean the `SecurityContext` is empty when it executes — `authentication.getName()` would return `null`. *(see [ADR-007](adr.md#adr-007--tenantcontextfilter-for-per-tenant-rbac))*
 
 See [`TenantContextFilter.java`](../sso-backend/src/main/java/dev/poc/sso/config/TenantContextFilter.java) for the full implementation.
 
@@ -225,7 +225,7 @@ See [`TenantContextFilter.java`](../sso-backend/src/main/java/dev/poc/sso/config
 | `DELETE` | `/people/{id}` | ✅ `ROLE_ADMIN` | Deletes a person — requires admin role in the active tenant |
 | `GET` | `/actuator/health` | ❌ | Health check |
 
-> **Production note:** The people list is stored in memory for simplicity. In a production application, this would be backed by a database with proper repository and service layers. The HTTP call is also made directly in the component — a deliberate simplification for the POC. Production code should extract this to a dedicated service with environment-based URLs.
+> **Production note:** The people list is stored in memory for simplicity. In a production application, this would be backed by a database with proper repository and service layers. The HTTP call is also made directly in the component — a deliberate simplification for the POC. Production code should extract this to a dedicated service with environment-based URLs. *(see [ADR-013](adr.md#adr-013--in-memory-data-for-users-companies-and-roles) and [ADR-014](adr.md#adr-014--http-call-in-peoplecomponent-no-service-layer))*
 
 ---
 
@@ -235,7 +235,7 @@ The frontend is an Angular 18 standalone application using `angular-oauth2-oidc@
 
 ### Why angular-oauth2-oidc?
 
-We chose `angular-oauth2-oidc` over `keycloak-angular` because it is **provider-agnostic** — it speaks standard OIDC, not Keycloak-specific APIs. This makes it the right choice for multi-tenant scenarios where the issuer could vary dynamically per tenant.
+We chose `angular-oauth2-oidc` over `keycloak-angular` because it is **provider-agnostic** — it speaks standard OIDC, not Keycloak-specific APIs. *(see [ADR-008](adr.md#adr-008--angular-18-with-angular-oauth2-oidc-over-keycloak-angular))* This makes it the right choice for multi-tenant scenarios where the issuer could vary dynamically per tenant.
 
 The library discovers all endpoints automatically via the OpenID Connect Discovery Document (`/.well-known/openid-configuration`), so we only need to provide the `issuer` URL.
 
@@ -266,7 +266,7 @@ Two guards protect the routes:
 
 After login, before accessing any protected page, the user sees a welcome modal listing the organizations they belong to. Selecting one calls `POST /auth/switch-tenant`, stores the result in `sessionStorage`, and navigates to `/people`.
 
-The modal is rendered at the `AppComponent` level — not inside a specific page — because tenant context is a cross-cutting concern that applies to every route.
+The modal is rendered at the `AppComponent` level — not inside a specific page — because tenant context is a cross-cutting concern that applies to every route. *(see [ADR-011](adr.md#adr-011--welcome-modal-at-appcomponent-level-for-tenant-selection))*
 
 ### Tenant switcher
 
@@ -294,7 +294,7 @@ With all three services running, the complete flow looks like this:
 cd infra && docker compose up -d
 
 # Terminal 2
-cd sso-backend && ./mvnw spring-boot:run
+cd backend && ./mvnw spring-boot:run
 
 # Terminal 3
 cd frontend && ng serve
@@ -312,7 +312,7 @@ Logging in with `user@poc.dev` and selecting Globex Inc shows the Delete button 
 
 This POC makes several deliberate simplifications. Here is what would need to change before going to production.
 
-### HTTPS
+### HTTPS *(see [ADR-015](adr.md#adr-015--https-excluded-from-poc-scope))*
 
 The POC runs over HTTP. In production, all traffic must be encrypted. Keycloak supports HTTPS natively — set `KC_HOSTNAME` and provide a valid certificate. The Angular app and Spring Boot API would also need TLS termination, typically handled by a reverse proxy or load balancer.
 
@@ -330,7 +330,7 @@ The HTTP call to `/people` is made directly in `PeopleComponent`. In production,
 
 ### Per-request introspection
 
-Every API request currently triggers a call to Keycloak for token validation. At scale, this creates unnecessary latency and load on the Identity Provider — and is a known limitation of this POC architecture.
+Every API request currently triggers a call to Keycloak for token validation. At scale, this creates unnecessary latency and load on the Identity Provider — and is a known limitation of this POC architecture. *(see [ADR-002](adr.md#adr-002--opaque-token-introspection-over-jwt-local-validation))*
 
 ---
 
